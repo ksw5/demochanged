@@ -158,13 +158,22 @@ class BotChatViewModel(
 
         Log.d("didi_chat", "sendStatementToEngine(), statement = $statement")
 
-        botChat.postStatement(PostbackRequest().apply {
-            postback(postback) }, PostbackRequest().callback)
+        botChat.postStatement(PostbackRequest().postback(statement), object : OnStatementResponse {
+            override fun onResponse(response: StatementResponse) {
+                response.error?.run { onError(this) }
+            }
 
-//        botChat.postStatement(PostbackRequest().apply {
-//            val postbackValue = statement(statement)
-//            postback(postbackValue.text)
-//        })
+            override fun onResponse(response: Response<StatementResponse>) {
+                response.data.takeUnless { it == null }?.run { onResponse(this) }
+                    ?: onError(response.error ?: NRError(NRError.GeneralError, NRError.EmptyResponse))
+            }
+
+            override fun onError(error: NRError) {
+                Log.d("error", "$error")
+            }
+        })
+       //botChat.postStatement(PostbackRequest().postback(statement), botChatListener)
+
 //        botChat.postStatement(
 //            StatementFactory.create(
 //                OutgoingStatement(
